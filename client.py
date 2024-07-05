@@ -2,6 +2,7 @@ import socket
 import threading
 import select
 import queue
+from utils import *
 from getch import getch
 
 class ClientState:
@@ -24,7 +25,7 @@ class InputHandler:
                     if char == 'q':
                         break
         except Exception as e:
-            print(f"Error in InputHandler: {e}")
+            stdio_print(f"Error in InputHandler: {e}")
 
 class SocketHandler:
     def __init__(self, client_socket, state):
@@ -41,7 +42,7 @@ class SocketHandler:
                     if not response:
                         self.state.exit_event.set()
                         raise ConnectionResetError()
-                    print(f"Server: {response.decode()}", end="")
+                    stdio_print(f"Server: {response.decode()}")
                 
                 if writable and not self.state.input_queue.empty():
                     char = self.state.input_queue.get()
@@ -50,7 +51,7 @@ class SocketHandler:
                         self.state.exit_event.set()
                         break
         except ConnectionResetError:
-            print("Server disconnected you!\r\n", end="")
+            stdio_print("Server disconnected you")
 
 class Client:
     def __init__(self, server_address, server_port):
@@ -61,7 +62,7 @@ class Client:
 
     def start(self):
         self.client_socket.connect((self.server_address, self.server_port))
-        print(f"Connected to {self.server_address}:{self.server_port}")
+        stdio_print(f"Connected to {self.server_address}:{self.server_port}")
 
         input_handler = InputHandler(self.state)
         socket_handler = SocketHandler(self.client_socket, self.state)
@@ -76,7 +77,7 @@ class Client:
         socket_thread.join()
 
         self.client_socket.close()
-        print("Client socket closed.")
+        stdio_print("Client socket closed")
 
 if __name__ == "__main__":
     client = Client(server_address='127.0.0.1', server_port=8080)

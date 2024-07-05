@@ -1,6 +1,7 @@
 import socket
 import threading
 import select
+from utils import *
 
 class ClientHandler:
     def __init__(self, client_socket, addr, idle_timeout, disconnect_event):
@@ -10,7 +11,7 @@ class ClientHandler:
         self.disconnect_event = disconnect_event
 
     def handle(self):
-        print(f"Handling client {self.addr}")
+        stdio_print(f"Handling client {self.addr}")
         self.client_socket.setblocking(False)
         timeout = 0
 
@@ -27,21 +28,21 @@ class ClientHandler:
                         raise ConnectionResetError()
 
                     char = request.decode()
-                    print(f"Received from {self.addr}: {char}")
+                    stdio_print(f"Received from {self.addr}: {char}")
 
                     if char == 'q':
-                        print(f"Client {self.addr} disconnected")
-                        self.client_socket.sendall("Connection closed by client\r\n".encode())
+                        stdio_print(f"Client {self.addr} disconnected")
+                        self.client_socket.sendall("Connection closed by client".encode())
                         break
 
-                    message = f"Received {char}\r\n"
+                    message = f"Received {char}"
                     self.client_socket.sendall(message.encode())
                 elif timeout >= self.idle_timeout:
-                    print(f"Client {self.addr} disconnected due to inactivity")
-                    self.client_socket.sendall("Disconnected due to inactivity\r\n".encode())
+                    stdio_print(f"Client {self.addr} disconnected due to inactivity")
+                    self.client_socket.sendall("Disconnected due to inactivity".encode())
                     break
             except ConnectionResetError:
-                print(f"Client {self.addr} error connection")
+                stdio_print(f"Client {self.addr} error connection")
                 break
 
         self.cleanup()
@@ -77,18 +78,18 @@ class Server:
     def start(self):
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(self.max_clients)
-        print(f"Listening on {self.host}:{self.port}")
+        stdio_print(f"Listening on {self.host}:{self.port}")
 
         try:
             while True:
                 client_socket, addr = self.server_socket.accept()
-                print(f"Accepted connection from {addr}")
+                stdio_print(f"Accepted connection from {addr}")
                 client_event = threading.Event()
                 ServerState.add_client(client_socket, client_event)
                 client_handler = ClientHandler(client_socket, addr, self.idle_timeout, client_event)
                 threading.Thread(target=client_handler.handle).start()
         except KeyboardInterrupt:
-            print("\nShutting down...")
+            stdio_print("\nShutting down...")
             ServerState.disconnect_all()
             self.server_socket.close()
 
