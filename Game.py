@@ -127,7 +127,7 @@ class Game:
                         self.game_map[new_head[0]][new_head[1]] = snake.cid
 
                 self.remove_dead_snakes()
-            time.sleep(0.8)
+            time.sleep(0.5)
 
     def remove_dead_snakes(self):
         to_remove = [cid for cid, info in self.snakes.items() if not info['snake'].is_alive()]
