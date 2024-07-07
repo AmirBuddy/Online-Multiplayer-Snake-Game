@@ -42,7 +42,13 @@ class SocketHandler:
                     if not response:
                         self.state.exit_event.set()
                         raise ConnectionResetError()
-                    stdio_print(f"Server: {response.decode()}")
+                    data = response.decode()
+                    if data.startswith("state data"):
+                        game_state = data[10:]
+                        print(game_state)
+                        print('', end='\r\n')
+                    else:
+                        stdio_print(f"Server: {data}")
                 
                 if writable and not self.state.input_queue.empty():
                     char = self.state.input_queue.get()
@@ -64,6 +70,18 @@ class Client:
         self.client_socket.connect((self.server_address, self.server_port))
         stdio_print(f"Connected to {self.server_address}:{self.server_port}")
 
+        res = self.client_socket.recv(1024).decode()
+        stdio_print(f"Server says: {res}")
+        while True:
+            inp = input("Enter your ID: ")
+            self.client_socket.sendall(inp.encode())
+            res = self.client_socket.recv(1024).decode()
+            stdio_print(f"Server says: {res}")
+            if res == "Ok":
+                break
+            else:
+                stdio_print("Invalid ID, try again.")
+
         input_handler = InputHandler(self.state)
         socket_handler = SocketHandler(self.client_socket, self.state)
 
@@ -79,6 +97,7 @@ class Client:
         self.client_socket.close()
         stdio_print("Client socket closed")
 
+
 if __name__ == "__main__":
-    client = Client(server_address='127.0.0.1', server_port=8080)
+    client = Client(server_address='127.0.0.1', server_port=8085)
     client.start()
