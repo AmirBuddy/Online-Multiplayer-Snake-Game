@@ -2,19 +2,37 @@ import socket
 import threading
 import select
 from utils import *
+import Game
 
 class ClientHandler:
-    def __init__(self, client_socket, addr, idle_timeout, disconnect_event):
+    def __init__(self, client_socket, addr, idle_timeout, disconnect_event, game):
         self.client_socket = client_socket
         self.addr = addr
         self.idle_timeout = idle_timeout
         self.disconnect_event = disconnect_event
+        self.game = game
 
     def handle(self):
         stdio_print(f"Handling client {self.addr}")
+
+        cid = None
+        try:
+            self.client_socket.sendall("Welcome! Please Enter your ID".encode())
+            flag = True
+            while flag:
+                data = self.client_socket.recv(1024)
+                if not data:
+                    raise ConnectionResetError() 
+                cid = data.decode()
+                flag = self.game.add_snake(cid)
+                if not flag:
+                    self.client_socket.sendall("This ID exists, peak another one".encode())
+        except ConnectionResetError:
+            stdio_print(f"Client {self.addr} error connection")
+        stdio_print(f"Client {self.addr} ID is {cid}")
+
         self.client_socket.setblocking(False)
         timeout = 0
-
         while True:
             try:
                 readable, _, _ = select.select([self.client_socket], [], [], 0.5)
@@ -74,6 +92,7 @@ class Server:
         self.max_clients = max_clients
         self.idle_timeout = idle_timeout
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.game = Game()
 
     def start(self):
         self.server_socket.bind((self.host, self.port))
@@ -86,7 +105,7 @@ class Server:
                 stdio_print(f"Accepted connection from {addr}")
                 client_event = threading.Event()
                 ServerState.add_client(client_socket, client_event)
-                client_handler = ClientHandler(client_socket, addr, self.idle_timeout, client_event)
+                client_handler = ClientHandler(client_socket, addr, self.idle_timeout, client_event, self.game)
                 threading.Thread(target=client_handler.handle).start()
         except KeyboardInterrupt:
             stdio_print("\nShutting down...")
