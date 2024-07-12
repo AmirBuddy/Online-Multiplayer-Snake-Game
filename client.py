@@ -35,7 +35,7 @@ class SocketHandler:
     def run(self):
         try:
             while not self.state.exit_event.is_set():
-                readable, writable, _ = select.select([self.client_socket], [self.client_socket], [self.client_socket], 0.5)
+                readable, writable, _ = select.select([self.client_socket], [self.client_socket], [self.client_socket])
                 
                 if readable:
                     response = self.client_socket.recv(1024)
@@ -45,8 +45,8 @@ class SocketHandler:
                     data = response.decode()
                     if data.startswith("state data"):
                         game_state = data[10:]
-                        print(game_state)
-                        print('', end='\r\n')
+                        stdio_print(game_state)
+                        stdio_print("")
                     else:
                         stdio_print(f"Server: {data}")
                 
@@ -67,36 +67,39 @@ class Client:
         self.state = ClientState()
 
     def start(self):
-        self.client_socket.connect((self.server_address, self.server_port))
-        stdio_print(f"Connected to {self.server_address}:{self.server_port}")
+        try:
+            self.client_socket.connect((self.server_address, self.server_port))
+            stdio_print(f"Connected to {self.server_address}:{self.server_port}")
 
-        res = self.client_socket.recv(1024).decode()
-        stdio_print(f"Server says: {res}")
-        while True:
-            inp = input("Enter your ID: ")
-            self.client_socket.sendall(inp.encode())
             res = self.client_socket.recv(1024).decode()
             stdio_print(f"Server says: {res}")
-            if res == "Ok":
-                break
-            else:
-                stdio_print("Invalid ID, try again.")
 
-        input_handler = InputHandler(self.state)
-        socket_handler = SocketHandler(self.client_socket, self.state)
+            while True:
+                inp = input("Enter your ID: ")
+                self.client_socket.sendall(inp.encode())
+                res = self.client_socket.recv(1024).decode()
+                stdio_print(f"Server says: {res}")
+                if res == "Ok":
+                    break
+                else:
+                    stdio_print("Invalid ID, try again.")
 
-        input_thread = threading.Thread(target=input_handler.run)
-        socket_thread = threading.Thread(target=socket_handler.run)
-        
-        input_thread.start()
-        socket_thread.start()
-        
-        input_thread.join()
-        socket_thread.join()
+            input_handler = InputHandler(self.state)
+            socket_handler = SocketHandler(self.client_socket, self.state)
 
-        self.client_socket.close()
-        stdio_print("Client socket closed")
-
+            input_thread = threading.Thread(target=input_handler.run)
+            socket_thread = threading.Thread(target=socket_handler.run)
+            
+            input_thread.start()
+            socket_thread.start()
+            
+            input_thread.join()
+            socket_thread.join()
+        except KeyboardInterrupt as e:
+            stdio_print(f"\nshutting down...")
+        finally:
+            self.client_socket.close()
+            stdio_print("Client socket closed")
 
 if __name__ == "__main__":
     client = Client(server_address='127.0.0.1', server_port=8085)

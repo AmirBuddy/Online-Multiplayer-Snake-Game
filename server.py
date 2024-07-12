@@ -28,14 +28,15 @@ class ClientHandler:
                 if not flag:
                     self.client_socket.sendall("This ID exists, peak another one".encode())
         except Exception:
+            stdio_print(f"Client {self.addr} disconnected")
             self.cleanup()
             return
-        self.client_socket.sendall("Ok".encode())
-        stdio_print(f"Client {self.addr} ID is {self.cid}")
 
         self.client_socket.setblocking(False)
         timeout = 0
         try:
+            self.client_socket.sendall("Ok".encode())
+            stdio_print(f"Client {self.addr} ID is {self.cid}")
             while self.game.is_alive(self.cid):
                 try:
                     readable, _, _ = select.select([self.client_socket], [], [], 0.5)
