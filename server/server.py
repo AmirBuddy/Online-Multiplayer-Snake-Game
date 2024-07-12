@@ -28,7 +28,6 @@ class ClientHandler:
                 if not flag:
                     self.client_socket.sendall("This ID exists, peak another one".encode())
         except Exception:
-            stdio_print(f"Client {self.addr} disconnected")
             self.cleanup()
             return
 
@@ -53,7 +52,6 @@ class ClientHandler:
                         char = request.decode()
                         stdio_print(f"Received from {self.cid}: {char}")
                         if char == 'q' or ord(char) == 3:
-                            stdio_print(f"Client {self.addr} disconnected")
                             self.client_socket.sendall("Connection closed by client".encode())
                             break
                         char = char.lower()
@@ -79,6 +77,7 @@ class ClientHandler:
 
     def cleanup(self):
         try:
+            stdio_print(f"Client {self.addr} disconnected")
             self.client_socket.close()
         except Exception as e:
             stdio_print(f"Error closing client socket for {self.addr}: {e}")

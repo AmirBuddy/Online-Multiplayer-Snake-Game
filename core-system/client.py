@@ -35,7 +35,7 @@ class SocketHandler:
     def run(self):
         try:
             while not self.state.exit_event.is_set():
-                readable, writable, _ = select.select([self.client_socket], [self.client_socket], [self.client_socket], 0.5)
+                readable, writable, _ = select.select([self.client_socket], [self.client_socket], [self.client_socket])
                 
                 if readable:
                     response = self.client_socket.recv(1024)
